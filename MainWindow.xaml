@@ -22,18 +22,38 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,20">
-            <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding SuggestByIdentifiedPostCommand}" ToolTip="Suggest Answer by identifying the post selected" Margin="5,0">
-                <materialDesign:PackIcon Kind="LightbulbOutline" />
-            </Button>
-            <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding SuggestBySelectedTextCommand}" ToolTip="Suggest Answer by the selected text" Margin="5,0">
-                <materialDesign:PackIcon Kind="LightbulbOutline" />
-            </Button>
-            <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding SuggestByFullPageContentCommand}" ToolTip="Suggest Answer by the full page content" Margin="5,0">
+            <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding SuggestCommand}" ToolTip="Suggest Answers" Margin="5,0">
                 <materialDesign:PackIcon Kind="LightbulbOutline" />
             </Button>
             <ProgressBar Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" Value="{Binding Progress}" Width="200" Margin="5"/>
         </StackPanel>
-        <TextBox Grid.Row="1" Margin="5" Text="{Binding SuggestionsContext, UpdateSourceTrigger=PropertyChanged}"
-             TextWrapping="Wrap" IsReadOnly="True" VerticalScrollBarVisibility="Auto"/>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Suggestions}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="5" Padding="5" Margin="5">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBox Grid.Row="0" Text="{Binding Text}" TextWrapping="Wrap" 
+                         IsReadOnly="True" VerticalScrollBarVisibility="Auto"/>
+                                <Button Grid.Row="1" Command="{Binding CopyCommand}" 
+                        Style="{StaticResource MaterialDesignFlatButton}" 
+                        ToolTip="Copier dans le presse-papiers" 
+                        HorizontalAlignment="Right">
+                                    <materialDesign:PackIcon Kind="ContentCopy"/>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+
+
+
+
+            </ItemsControl>
+        </ScrollViewer>
     </Grid>
 </Window>

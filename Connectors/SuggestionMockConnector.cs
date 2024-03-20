@@ -8,7 +8,7 @@ internal class SuggestionMockConnector : ISuggestionConnector
 
     public async Task<string> GetSuggestion(string context)
     {
-        await Task.Delay(1000);
+        await Task.Delay(10000);
         return context;
     }
 }

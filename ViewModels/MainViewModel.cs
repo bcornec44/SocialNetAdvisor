@@ -1,16 +1,14 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using OllamaSharp;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
 using SocialNetAdvisor.Connectors;
 using SocialNetAdvisor.Helpers;
 using SocialNetAdvisor.Models;
-using System;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.IO;
-using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -22,14 +20,8 @@ internal partial class MainViewModel : ObservableObject
     private const string _facebookUrl = "https://www.facebook.com/";
     private ISuggestionConnector _suggestionConnector;
 
-    private string _context;
+    public ObservableCollection<SuggestionItem> Suggestions { get; set; } = new ObservableCollection<SuggestionItem>();
 
-    private string _suggestionsContext;
-    public string SuggestionsContext
-    {
-        get => _suggestionsContext;
-        set => SetProperty(ref _suggestionsContext, value);
-    }
 
     private bool _isLoading;
     public bool IsLoading
@@ -48,14 +40,10 @@ internal partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
-        SuggestByIdentifiedPostCommand = new AsyncRelayCommand(SuggestByIdentifiedPost);
-        SuggestBySelectedTextCommand = new AsyncRelayCommand(SuggestBySelectedText);
-        SuggestByFullPageContentCommand = new AsyncRelayCommand(SuggestByFullPageContent);
+        SuggestCommand = new AsyncRelayCommand(Suggest);
     }
 
-    public IAsyncRelayCommand SuggestByIdentifiedPostCommand { get; }
-    public IAsyncRelayCommand SuggestBySelectedTextCommand { get; }
-    public IAsyncRelayCommand SuggestByFullPageContentCommand { get; }
+    public IAsyncRelayCommand SuggestCommand { get; }
 
     internal void Loaded()
     {
@@ -93,70 +81,51 @@ internal partial class MainViewModel : ObservableObject
         SaveCookie(driverName).Wait();
     }
 
-    private async Task SuggestByIdentifiedPost(CancellationToken cancellationToken)
+    private async Task Suggest(CancellationToken cancellationToken)
     {
         IsLoading = true;
         Progress = 0;
-        await ScanByIdenfiedPost(cancellationToken);
+        Suggestions.Clear();
+        var contexts = new List<string>
+        {
+            await GetContextByIdenfiedPost(),
+            await GetContextByIdenfiedPost(),
+            await GetContextBySelectedText(),
+            await GetContextByFullPageContent()
+        };
         Progress = 50;
-        await GetSuggestion();
-        Progress = 100;
+        var availableContexts = contexts.Where(p => !string.IsNullOrEmpty(p)).ToList();
+        var i = 0;
+        foreach (var context in availableContexts)
+        {
+            var suggestion = await GetSuggestion(context);
+            Suggestions.Add(suggestion);
+            i++;
+            Progress = 50 + (i * 50 / availableContexts.Count);
+        }
         IsLoading = false;
     }
 
-    private async Task SuggestBySelectedText(CancellationToken cancellationToken)
-    {
-        IsLoading = true;
-        Progress = 0;
-        await ScanBySelectedText(cancellationToken);
-        Progress = 50;
-        await GetSuggestion();
-        Progress = 100;
-        IsLoading = false;
-    }
-
-    private async Task SuggestByFullPageContent(CancellationToken cancellationToken)
-    {
-        IsLoading = true;
-        Progress = 0;
-        await ScanByFullPageContent(cancellationToken);
-        Progress = 50;
-        await GetSuggestion();
-        Progress = 100;
-        IsLoading = false;
-    }
-
-
-    private async Task ScanByIdenfiedPost(CancellationToken cancellationToken)
+    private async Task<string> GetContextByIdenfiedPost()
     {
         try
         {
-            string identifiedPost = null;
-            string identifiedReplies = null;
-
-            var task = Task.Run(() =>
+            return await Task.Run(() =>
             {
-                Progress = 10;
                 var justText = GetBodyText(_driver);
-                Progress = 20;
                 var originalPosts = GetOriginalPosts(justText);
-                Progress = 25;
-                string selectedText = GetSelection(_driver);
-                Progress = 30;
-                identifiedPost = FindOriginalPost(selectedText, originalPosts);
-                Progress = 35;
-                identifiedReplies = string.Empty;
+                var selectedText = GetSelection(_driver);
+                var identifiedPost = FindOriginalPost(selectedText, originalPosts);
+                var identifiedReplies = string.Empty;
 
                 if (identifiedPost == null)
                 {
                     SelectAll(_driver);
                     selectedText = GetSelection(_driver);
-                    Progress = 40;
                     var currentPost = selectedText.Split(" · ").LastOrDefault();
                     var currentPostReplies = currentPost.Split("Répondre").Select(CleanText).ToList();
                     currentPostReplies.Remove(currentPostReplies.Last());
                     var sample = currentPostReplies.FirstOrDefault().Split(Environment.NewLine).FirstOrDefault().Trim();
-                    Progress = 45;
                     identifiedPost = FindOriginalPost(sample, originalPosts);
                     if (identifiedPost != null)
                     {
@@ -165,52 +134,46 @@ internal partial class MainViewModel : ObservableObject
 
                     identifiedReplies = string.Join(Environment.NewLine + Environment.NewLine + "New comment : " + Environment.NewLine, currentPostReplies);
                 }
+                return identifiedPost + identifiedReplies;
             });
-            task.GetAwaiter().GetResult();
-            _context = identifiedPost + identifiedReplies;
         }
         catch (Exception)
         {
 
         }
+        return string.Empty;
     }
 
-    private async Task ScanByFullPageContent(CancellationToken cancellationToken)
+    private async Task<string> GetContextByFullPageContent()
     {
         try
         {
-            var task = Task.Run(() =>
-            {
-                Progress = 30;
-                _context = GetBodyText(_driver);
-            });
-            task.GetAwaiter().GetResult();
+            return await Task.Run(() => GetBodyText(_driver));
         }
         catch (Exception)
         {
 
         }
+        return string.Empty;
     }
 
-    private async Task ScanBySelectedText(CancellationToken cancellationToken)
+    private async Task<string> GetContextBySelectedText()
     {
         try
         {
-            _context = GetSelection(_driver);
-            Progress = 20;
+            return await Task.Run(() => GetSelection(_driver));
         }
         catch (Exception)
         {
 
         }
+        return string.Empty;
     }
 
-    private async Task GetSuggestion()
+    private async Task<SuggestionItem> GetSuggestion(string context)
     {
-        SuggestionsContext = string.Empty;
-        Progress = 55;
-        var message = await _suggestionConnector.GetSuggestion(_context);
-        SuggestionsContext = message;
+        var message = await _suggestionConnector.GetSuggestion(context);
+        return new SuggestionItem() { Text = message };
     }
 
     private void SelectAll(IWebDriver driver)
@@ -324,7 +287,7 @@ internal partial class MainViewModel : ObservableObject
         return source;
     }
 
-    private async Task SaveCookie(string driverName)
+    private Task SaveCookie(string driverName)
     {
         var cookies = _driver.Manage().Cookies.AllCookies.Select(c => new SerializableCookie
         {
@@ -340,6 +303,7 @@ internal partial class MainViewModel : ObservableObject
 
         string json = JsonSerializer.Serialize(cookies);
         File.WriteAllText(GetCookieName(driverName), json);
+        return Task.CompletedTask;
     }
 
     private bool HasCookie(string driverName)
