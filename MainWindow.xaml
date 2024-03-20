@@ -1,0 +1,39 @@
+﻿<Window x:Class="SocialNetAdvisor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:SocialNetAdvisor.ViewModels"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="MainWindow" Height="600" Width="800"
+        mc:Ignorable="d"
+        Loaded="Window_Loaded"
+        Closing="Window_Closing">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Window.Resources>
+    <Window.DataContext>
+        <viewModels:MainViewModel x:Name="ViewModel"/>
+    </Window.DataContext>
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,20">
+            <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding SuggestByIdentifiedPostCommand}" ToolTip="Suggest Answer by identifying the post selected" Margin="5,0">
+                <materialDesign:PackIcon Kind="LightbulbOutline" />
+            </Button>
+            <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding SuggestBySelectedTextCommand}" ToolTip="Suggest Answer by the selected text" Margin="5,0">
+                <materialDesign:PackIcon Kind="LightbulbOutline" />
+            </Button>
+            <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding SuggestByFullPageContentCommand}" ToolTip="Suggest Answer by the full page content" Margin="5,0">
+                <materialDesign:PackIcon Kind="LightbulbOutline" />
+            </Button>
+            <ProgressBar Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" Value="{Binding Progress}" Width="200" Margin="5"/>
+        </StackPanel>
+        <TextBox Grid.Row="1" Margin="5" Text="{Binding SuggestionsContext, UpdateSourceTrigger=PropertyChanged}"
+             TextWrapping="Wrap" IsReadOnly="True" VerticalScrollBarVisibility="Auto"/>
+    </Grid>
+</Window>
