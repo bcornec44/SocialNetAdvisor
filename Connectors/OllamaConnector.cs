@@ -19,12 +19,18 @@ internal class OllamaConnector : ISuggestionConnector
     {
         string message = "";
 
-        var chat = _ollamaApiClient.Chat(stream =>
+        try
         {
-            message += stream.Message?.Content ?? "";
-        });
-
-        await chat.Send(_template + context);
+            var chat = _ollamaApiClient.Chat(stream =>
+            {
+                message += stream.Message?.Content ?? "";
+            });
+            await chat.Send(_template + context);
+        }
+        catch
+        {
+            message = "Error on server side, please contact your admnistrator";
+        }
         return message;
     }
 }

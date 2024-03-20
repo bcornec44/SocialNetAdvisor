@@ -34,7 +34,6 @@ internal partial class MainViewModel : ObservableObject
     public int Progress
     {
         get => _progress;
-        //set => Application.Current.Dispatcher.Invoke(() => SetProperty(ref _progress, value));
         set => SetProperty(ref _progress, value);
     }
 
@@ -48,7 +47,7 @@ internal partial class MainViewModel : ObservableObject
     internal void Loaded()
     {
         LoadDriver(_facebookUrl);
-        _suggestionConnector = new SuggestionMockConnector();
+        _suggestionConnector = new OllamaConnector();
         _suggestionConnector.Initialize();
     }
 
@@ -88,9 +87,9 @@ internal partial class MainViewModel : ObservableObject
         Suggestions.Clear();
         var contexts = new List<string>
         {
-            await GetContextByIdenfiedPost(),
-            await GetContextByIdenfiedPost(),
             await GetContextBySelectedText(),
+            await GetContextByIdenfiedPost(),
+            await GetContextByIdenfiedPost(),
             await GetContextByFullPageContent()
         };
         Progress = 50;
@@ -100,6 +99,7 @@ internal partial class MainViewModel : ObservableObject
         {
             var suggestion = await GetSuggestion(context);
             Suggestions.Add(suggestion);
+            File.WriteAllText($"suggestion{i}.txt", $"{context}{Environment.NewLine}{Environment.NewLine}{Environment.NewLine}{suggestion.Text}");
             i++;
             Progress = 50 + (i * 50 / availableContexts.Count);
         }
@@ -125,11 +125,14 @@ internal partial class MainViewModel : ObservableObject
                     var currentPost = selectedText.Split(" · ").LastOrDefault();
                     var currentPostReplies = currentPost.Split("Répondre").Select(CleanText).ToList();
                     currentPostReplies.Remove(currentPostReplies.Last());
-                    var sample = currentPostReplies.FirstOrDefault().Split(Environment.NewLine).FirstOrDefault().Trim();
-                    identifiedPost = FindOriginalPost(sample, originalPosts);
-                    if (identifiedPost != null)
+                    if (currentPostReplies.Any())
                     {
-                        currentPostReplies.Remove(currentPostReplies.FirstOrDefault());
+                        var sample = currentPostReplies.First().Split(Environment.NewLine).First().Trim();
+                        identifiedPost = FindOriginalPost(sample, originalPosts);
+                        if (identifiedPost != null)
+                        {
+                            currentPostReplies.Remove(currentPostReplies.FirstOrDefault());
+                        }
                     }
 
                     identifiedReplies = string.Join(Environment.NewLine + Environment.NewLine + "New comment : " + Environment.NewLine, currentPostReplies);
