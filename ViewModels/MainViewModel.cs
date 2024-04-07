@@ -48,7 +48,8 @@ internal partial class MainViewModel : ObservableObject
     internal void Loaded()
     {
         LoadDriver(_facebookUrl);
-        _suggestionConnector = new OllamaConnector();
+        /// TODO refaire le connecteur POST pour le local
+       _suggestionConnector = new OllamaConnector();
         _suggestionConnector.Initialize();
     }
 
@@ -86,16 +87,19 @@ internal partial class MainViewModel : ObservableObject
         IsLoading = true;
         Progress = 0;
         Suggestions.Clear();
+        var contextBySelectedText = await GetContextBySelectedText();
+        var contextByIdenfiedPost = await GetContextByIdenfiedPost();
+
         var contexts = new List<string>
         {
-            await GetContextBySelectedText(),
-            await GetContextByIdenfiedPost(),
-            await GetContextByIdenfiedPost(),
+            contextBySelectedText,
+            contextByIdenfiedPost,
+            contextByIdenfiedPost
         };
 
         if (contexts.Any(p => !string.IsNullOrEmpty(p)))
         {
-            contexts.Add(await GetContextBySelectedText());
+            contexts.Add(contextBySelectedText);
         }
         else
         {
