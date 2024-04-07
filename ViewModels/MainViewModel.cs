@@ -1,13 +1,14 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using Common.Connectors;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
-using SocialNetAdvisor.Connectors;
 using SocialNetAdvisor.Helpers;
 using SocialNetAdvisor.Models;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -90,15 +91,29 @@ internal partial class MainViewModel : ObservableObject
             await GetContextBySelectedText(),
             await GetContextByIdenfiedPost(),
             await GetContextByIdenfiedPost(),
-            await GetContextByFullPageContent()
         };
+
+        if (contexts.Any(p => !string.IsNullOrEmpty(p)))
+        {
+            contexts.Add(await GetContextBySelectedText());
+        }
+        else
+        {
+            contexts.Add(await GetContextByFullPageContent());
+        }
+
         Progress = 50;
         var availableContexts = contexts.Where(p => !string.IsNullOrEmpty(p)).ToList();
         var i = 0;
         foreach (var context in availableContexts)
         {
-            var suggestion = await GetSuggestion(context);
+
+            var suggestion = new SuggestionItem();
             Suggestions.Add(suggestion);
+            await foreach (var suggestionPart in _suggestionConnector.GetSuggestion(context))
+            {
+                suggestion.Text = suggestion.Text + suggestionPart;
+            }
             File.WriteAllText($"suggestion{i}.txt", $"{context}{Environment.NewLine}{Environment.NewLine}{Environment.NewLine}{suggestion.Text}");
             i++;
             Progress = 50 + (i * 50 / availableContexts.Count);
@@ -171,12 +186,6 @@ internal partial class MainViewModel : ObservableObject
 
         }
         return string.Empty;
-    }
-
-    private async Task<SuggestionItem> GetSuggestion(string context)
-    {
-        var message = await _suggestionConnector.GetSuggestion(context);
-        return new SuggestionItem() { Text = message };
     }
 
     private void SelectAll(IWebDriver driver)

@@ -1,11 +1,18 @@
-﻿using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System.Windows;
 
 namespace SocialNetAdvisor.Models;
 
-public class SuggestionItem
+public class SuggestionItem : ObservableObject
 {
-    public string Text { get; set; }
+
+    private string _text;
+    public string Text
+    {
+        get => _text;
+        set => SetProperty(ref _text, value);
+    }
 
     public IAsyncRelayCommand CopyCommand { get; }
 
