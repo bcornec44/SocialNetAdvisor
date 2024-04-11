@@ -48,8 +48,7 @@ internal partial class MainViewModel : ObservableObject
     internal void Loaded()
     {
         LoadDriver(_facebookUrl);
-        /// TODO refaire le connecteur POST pour le local
-       _suggestionConnector = new OllamaConnector();
+       _suggestionConnector = new SuggestionApiConnector();
         _suggestionConnector.Initialize();
     }
 
@@ -114,9 +113,17 @@ internal partial class MainViewModel : ObservableObject
 
             var suggestion = new SuggestionItem();
             Suggestions.Add(suggestion);
-            await foreach (var suggestionPart in _suggestionConnector.GetSuggestion(context))
+
+            try
             {
-                suggestion.Text = suggestion.Text + suggestionPart;
+                await foreach (var suggestionPart in _suggestionConnector.GetSuggestion(context))
+                {
+                    suggestion.Text = suggestion.Text + suggestionPart;
+                }
+            }
+            catch (Exception ex)
+            {
+                suggestion.Text = "Error on client side";
             }
             File.WriteAllText($"suggestion{i}.txt", $"{context}{Environment.NewLine}{Environment.NewLine}{Environment.NewLine}{suggestion.Text}");
             i++;

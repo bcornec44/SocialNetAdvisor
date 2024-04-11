@@ -1,16 +1,18 @@
-﻿using System.Text.Json.Serialization;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text;
 namespace Common.Connectors;
 
 public class SuggestionApiConnector : ISuggestionConnector
 {
-    private string _url = "http://localhost:5000/api/suggestion";
+    private string _url = "http://raspberrypi.local:5000/api/Suggestion";
     private HttpClient? _client;
 
     public void Initialize()
     {
-        _client = new HttpClient();
+        _client = new HttpClient
+        {
+            Timeout = TimeSpan.FromMinutes(3)
+        };
     }
 
     public async IAsyncEnumerable<string> GetSuggestion(string context)
@@ -20,7 +22,7 @@ public class SuggestionApiConnector : ISuggestionConnector
 
         HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, _url)
         {
-            Content = new StringContent(JsonSerializer.Serialize(new {Context = context}), Encoding.UTF8, "application/json")
+            Content = new StringContent(JsonSerializer.Serialize(context), Encoding.UTF8, "application/json")
         };
         HttpCompletionOption completionOption = HttpCompletionOption.ResponseHeadersRead;
         using HttpResponseMessage response = await _client.SendAsync(request, completionOption);
@@ -55,10 +57,10 @@ public class SuggestionApiConnector : ISuggestionConnector
             string result = string.Empty;
             try
             {
-                var response = JsonSerializer.Deserialize<ApiResponseStream>(line);
-                if (!string.IsNullOrEmpty(response?.Text))
+                var suggestion = JsonSerializer.Deserialize<JsonElement>(line);
+                if (suggestion.TryGetProperty("Text", out JsonElement textElement))
                 {
-                    result = response.Text;
+                    result = textElement.GetString()??string.Empty;
                 }
             }
             catch (Exception exception)
@@ -67,11 +69,5 @@ public class SuggestionApiConnector : ISuggestionConnector
             }
             yield return result;
         }
-    }
-
-    public class ApiResponseStream
-    {
-        [JsonPropertyName("Text")]
-        public string Text { get; set; }
     }
 }

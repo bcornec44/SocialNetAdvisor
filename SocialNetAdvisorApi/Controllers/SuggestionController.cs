@@ -12,7 +12,7 @@ public class SuggestionController : ControllerBase
 
     public SuggestionController()
     {
-        _suggestionConnector = new LimitedOllamaConnector();
+        _suggestionConnector = new OllamaConnector();
         _suggestionConnector.Initialize();
     }
 
@@ -21,7 +21,7 @@ public class SuggestionController : ControllerBase
     {
         if (string.IsNullOrEmpty(context))
         {
-            Response.StatusCode = 400; // BadRequest
+            Response.StatusCode = 400;
             await Response.WriteAsync("The context cannot be empty.");
             return;
         }
