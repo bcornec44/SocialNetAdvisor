@@ -3,11 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SocialNetAdvisor", "SocialNetAdvisor.csproj", "{DC8BFE17-E29D-44FA-8432-8AEEAC08AB3A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SocialNetAdvisor", "Front\SocialNetAdvisor.csproj", "{DC8BFE17-E29D-44FA-8432-8AEEAC08AB3A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SocialNetAdvisorApi", "..\SocialNetAdvisorApi\SocialNetAdvisorApi.csproj", "{6B641CA9-24F4-40C0-86E5-C8B4970B3E52}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SocialNetAdvisorApi", "SocialNetAdvisorApi\SocialNetAdvisorApi.csproj", "{6B641CA9-24F4-40C0-86E5-C8B4970B3E52}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "..\Common\Common.csproj", "{C36B4A41-A672-4AD6-9DFB-8AE08F81629F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "Common\Common.csproj", "{C36B4A41-A672-4AD6-9DFB-8AE08F81629F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SocialNetAdvisorApiWin", "SocialNetAdvisorApi\SocialNetAdvisorApiWin.csproj", "{A776E211-8718-4731-9507-50591CAD121B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{C36B4A41-A672-4AD6-9DFB-8AE08F81629F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C36B4A41-A672-4AD6-9DFB-8AE08F81629F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C36B4A41-A672-4AD6-9DFB-8AE08F81629F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A776E211-8718-4731-9507-50591CAD121B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A776E211-8718-4731-9507-50591CAD121B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A776E211-8718-4731-9507-50591CAD121B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A776E211-8718-4731-9507-50591CAD121B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
