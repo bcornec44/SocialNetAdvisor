@@ -1,6 +1,6 @@
 ﻿namespace Common.Connectors;
 
-internal class SuggestionMockConnector : ISuggestionConnector
+public class SuggestionMockConnector : ISuggestionConnector
 {
     public void Initialize()
     {

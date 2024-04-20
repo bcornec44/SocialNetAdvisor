@@ -5,10 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:SocialNetAdvisor.ViewModels"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="MainWindow" Height="600" Width="800"
         mc:Ignorable="d"
-        Loaded="Window_Loaded"
-        Closing="Window_Closing">
+        WindowState="Maximized"
+        Loaded="Window_Loaded">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </Window.Resources>
@@ -19,11 +20,15 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,20">
             <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding SuggestCommand}" ToolTip="Suggest Answers" Margin="5,0">
                 <materialDesign:PackIcon Kind="LightbulbOutline" />
+            </Button>
+            <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding SaveCookieCommand}" ToolTip="Save cookie" Margin="5,0">
+                <materialDesign:PackIcon Kind="Cookie" />
             </Button>
             <ProgressBar Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" Value="{Binding Progress}" Width="200" Margin="5"/>
         </StackPanel>
@@ -49,11 +54,14 @@
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
-
-
-
-
             </ItemsControl>
         </ScrollViewer>
+        <wv2:WebView2 Grid.Row="2"
+                      Name="webView"
+                      Source="https://www.facebook.com/"
+                      VerticalAlignment="Stretch"
+                      HorizontalAlignment="Stretch"/>
+        
+
     </Grid>
 </Window>

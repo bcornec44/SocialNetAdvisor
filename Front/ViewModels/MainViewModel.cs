@@ -1,14 +1,12 @@
 ﻿using Common.Connectors;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Interactions;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Wpf;
 using SocialNetAdvisor.Helpers;
 using SocialNetAdvisor.Models;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -17,7 +15,7 @@ namespace SocialNetAdvisor.ViewModels;
 
 internal partial class MainViewModel : ObservableObject
 {
-    private IWebDriver _driver;
+    private WebView2 _webView;
     private const string _facebookUrl = "https://www.facebook.com/";
     private ISuggestionConnector _suggestionConnector;
 
@@ -41,44 +39,45 @@ internal partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         SuggestCommand = new AsyncRelayCommand(Suggest);
+        SaveCookieCommand = new AsyncRelayCommand(SaveCookie);
     }
 
     public IAsyncRelayCommand SuggestCommand { get; }
+    public IAsyncRelayCommand SaveCookieCommand { get; }
 
-    internal void Loaded()
+    internal async Task Loaded(WebView2 webView)
     {
-        LoadDriver(_facebookUrl);
-       _suggestionConnector = new SuggestionApiConnector();
+        await LoadWebView(webView);
+        _suggestionConnector = new SuggestionMockConnector();
         _suggestionConnector.Initialize();
     }
 
-    private void LoadDriver(string driverName)
+    public async Task LoadWebView(WebView2 webView)
     {
-        var options = new ChromeOptions();
-        ChromeDriverService service = ChromeDriverService.CreateDefaultService();
-        service.HideCommandPromptWindow = true;
-        options.AddExcludedArguments(new List<string> { "enable-automation" });
-        options.AddArgument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36");
-        //options.AddArgument("--user-data-dir=C:/Users/benja/AppData/Local/Google/Chrome/User Data");
-        options.AddArgument("--profile-directory=Default");
-        options.AddArguments("--disable-notifications");
-        _driver = new ChromeDriver(service, options);
-        var screenWidth = SystemParameters.PrimaryScreenWidth;
-        var screenHeight = SystemParameters.PrimaryScreenHeight;
-        _driver.Manage().Window.Position = new System.Drawing.Point(0, 0);
-        _driver.Manage().Window.Size = new System.Drawing.Size((int)(screenWidth / 2), (int)screenHeight);
+        await webView.EnsureCoreWebView2Async(null).ContinueWith(task =>
+        {
+            Application.Current.Dispatcher.InvokeAsync(async () =>
+            {
+                _webView = webView;
+                webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
+                webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+                webView.CoreWebView2.PermissionRequested += (sender, args) =>
+                {
+                    if (args.PermissionKind == CoreWebView2PermissionKind.Notifications)
+                    {
+                        args.State = CoreWebView2PermissionState.Deny;
+                    }
+                };
+                webView.CoreWebView2.Navigate(_facebookUrl);
 
-        if (HasCookie(driverName))
-        {
-            _driver.Navigate().GoToUrl(driverName);
-            LoadCookie(_driver, driverName);
-            Wait.S(3);
-        }
-        else
-        {
-            _driver.Navigate().GoToUrl(driverName);
-        }
-        SaveCookie(driverName).Wait();
+                if (HasCookie())
+                {
+                    await LoadCookie();
+                    await Wait.S(3, default(CancellationToken));
+                }
+                await SaveCookie();
+            });
+        });
     }
 
     private async Task Suggest(CancellationToken cancellationToken)
@@ -136,34 +135,13 @@ internal partial class MainViewModel : ObservableObject
     {
         try
         {
-            return await Task.Run(() =>
+            return await Task.Run(async () =>
             {
-                var justText = GetBodyText(_driver);
+                var justText = await GetBodyText();
                 var originalPosts = GetOriginalPosts(justText);
-                var selectedText = GetSelection(_driver);
+                var selectedText = await GetSelection();
                 var identifiedPost = FindOriginalPost(selectedText, originalPosts);
-                var identifiedReplies = string.Empty;
-
-                if (identifiedPost == null)
-                {
-                    SelectAll(_driver);
-                    selectedText = GetSelection(_driver);
-                    var currentPost = selectedText.Split(" · ").LastOrDefault();
-                    var currentPostReplies = currentPost.Split("Répondre").Select(CleanText).ToList();
-                    currentPostReplies.Remove(currentPostReplies.Last());
-                    if (currentPostReplies.Any())
-                    {
-                        var sample = currentPostReplies.First().Split(Environment.NewLine).First().Trim();
-                        identifiedPost = FindOriginalPost(sample, originalPosts);
-                        if (identifiedPost != null)
-                        {
-                            currentPostReplies.Remove(currentPostReplies.FirstOrDefault());
-                        }
-                    }
-
-                    identifiedReplies = string.Join(Environment.NewLine + Environment.NewLine + "New comment : " + Environment.NewLine, currentPostReplies);
-                }
-                return identifiedPost + identifiedReplies;
+                return identifiedPost;
             });
         }
         catch (Exception)
@@ -177,7 +155,7 @@ internal partial class MainViewModel : ObservableObject
     {
         try
         {
-            return await Task.Run(() => GetBodyText(_driver));
+            return await Task.Run(GetBodyText);
         }
         catch (Exception)
         {
@@ -190,48 +168,33 @@ internal partial class MainViewModel : ObservableObject
     {
         try
         {
-            return await Task.Run(() => GetSelection(_driver));
+            return await Task.Run(GetSelection);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-
+            await Console.Out.WriteLineAsync(e.Message);
         }
         return string.Empty;
     }
 
-    private void SelectAll(IWebDriver driver)
+    private async Task<string> GetBodyText()
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        var script = "document.body.innerText";
+        string pageText = await Application.Current.Dispatcher.Invoke(async() =>
         {
-            var actions = new Actions(driver);
-            bool isMacOS = System.Runtime.InteropServices.RuntimeInformation
-                        .IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX);
-
-            if (isMacOS)
-            {
-                actions.KeyDown(Keys.Command).SendKeys("a").KeyUp(Keys.Command).Perform();
-            }
-            else
-            {
-                actions.KeyDown(Keys.Control).SendKeys("a").KeyUp(Keys.Control).Perform();
-            }
+            return await _webView.CoreWebView2.ExecuteScriptAsync(script);
         });
+        return pageText.Trim('"');
     }
 
-    private string GetBodyText(IWebDriver driver)
+    private async Task<string> GetSelection()
     {
-        IJavaScriptExecutor jsExecutor = (IJavaScriptExecutor)driver;
-        string script = "return document.querySelector('body').innerText;";
-        string bodyText = (string)jsExecutor.ExecuteScript(script);
-        return bodyText;
-    }
-
-    private string GetSelection(IWebDriver driver)
-    {
-        IJavaScriptExecutor jsExecutor = (IJavaScriptExecutor)driver;
-        string script = "return window.getSelection().toString();";
-        string selectedText = (string)jsExecutor.ExecuteScript(script);
-        return selectedText;
+        string script = "window.getSelection().toString()";
+        string pageText = await Application.Current.Dispatcher.Invoke(async () =>
+        {
+            return await _webView.CoreWebView2.ExecuteScriptAsync(script);
+        });
+        return pageText.Trim('"');
     }
 
     private ConcurrentBag<string> GetOriginalPosts(string input)
@@ -254,7 +217,7 @@ internal partial class MainViewModel : ObservableObject
             if (msg.Contains(sample))
             {
                 result = msg;
-                state.Stop(); // Arrête la boucle dès qu'un résultat est trouvé
+                state.Stop();
             }
         });
 
@@ -310,28 +273,9 @@ internal partial class MainViewModel : ObservableObject
         return source;
     }
 
-    private Task SaveCookie(string driverName)
+    private bool HasCookie()
     {
-        var cookies = _driver.Manage().Cookies.AllCookies.Select(c => new SerializableCookie
-        {
-            Name = c.Name,
-            Value = c.Value,
-            Domain = c.Domain,
-            Path = c.Path,
-            Expiry = c.Expiry,
-            IsHttpOnly = c.IsHttpOnly,
-            SameSite = c.SameSite,
-            Secure = c.Secure
-        }).ToList();
-
-        string json = JsonSerializer.Serialize(cookies);
-        File.WriteAllText(GetCookieName(driverName), json);
-        return Task.CompletedTask;
-    }
-
-    private bool HasCookie(string driverName)
-    {
-        return File.Exists(GetCookieName(driverName));
+        return File.Exists(GetCookieName());
     }
 
     private string GetCookieName(string driverName)
@@ -339,25 +283,25 @@ internal partial class MainViewModel : ObservableObject
         return $"cookies{Regex.Replace(driverName, "[^A-Za-z0-9 -]", "")}.json";
     }
 
-    private void LoadCookie(IWebDriver driver, string driverName)
+    private string GetCookieName()
     {
-        string json = File.ReadAllText(GetCookieName(driverName));
-        var cookies = JsonSerializer.Deserialize<List<SerializableCookie>>(json);
-
-        if (cookies != null)
-        {
-            foreach (var sc in cookies)
-            {
-                Cookie cookie = new Cookie(sc.Name, sc.Value, sc.Domain, sc.Path, sc.Expiry, sc.Secure, sc.IsHttpOnly, sc.SameSite);
-                driver.Manage().Cookies.AddCookie(cookie);
-            }
-        }
-
-        driver.Navigate().Refresh();
+        return GetCookieName(_webView.Source.ToString());
     }
 
-    internal void Closing()
+    private async Task LoadCookie()
     {
-        _driver.Quit();
+        string json = await File.ReadAllTextAsync(GetCookieName());
+        var cookie = JsonSerializer.Deserialize<CoreWebView2Cookie>(json);
+        var cookieManager = _webView.CoreWebView2.CookieManager;
+        cookie = cookieManager.CreateCookie(cookie.Name, cookie.Value, cookie.Domain, cookie.Path);
+        cookieManager.AddOrUpdateCookie(cookie);
+    }
+
+    private async Task SaveCookie()
+    {
+        var cookieManager = _webView.CoreWebView2.CookieManager;
+        var cookies = await cookieManager.GetCookiesAsync(GetCookieName());
+        string json = JsonSerializer.Serialize(cookies);
+        await File.WriteAllTextAsync(GetCookieName(), json);
     }
 }
