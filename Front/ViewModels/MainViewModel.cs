@@ -36,10 +36,24 @@ internal partial class MainViewModel : ObservableObject
         set => SetProperty(ref _progress, value);
     }
 
+    private int _selectedTabIndex;
+    public int SelectedTabIndex
+    {
+        get => _selectedTabIndex;
+        set => SetProperty(ref _selectedTabIndex, value);
+    }
+
     public MainViewModel()
     {
         SuggestCommand = new AsyncRelayCommand(Suggest);
         SaveCookieCommand = new AsyncRelayCommand(SaveCookie);
+        Suggestions.CollectionChanged += (s, e) =>
+        {
+            if (Suggestions.Count > 0)
+            {
+                SelectedTabIndex = 1;
+            }
+        };
     }
 
     public IAsyncRelayCommand SuggestCommand { get; }
