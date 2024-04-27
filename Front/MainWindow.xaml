@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        xmlns:viewModels="clr-namespace:SocialNetAdvisor.ViewModels"
+        xmlns:viewModels="clr-namespace:SocialNetAdvisor.ViewModels" xmlns:suggestions="clr-namespace:SocialNetAdvisor"
         Title="MainWindow"
         WindowState="Maximized"
         Loaded="Window_Loaded"
@@ -16,9 +16,8 @@
     <Window.DataContext>
         <viewModels:MainViewModel x:Name="ViewModel"/>
     </Window.DataContext>
-
     <Grid>
-        <DockPanel LastChildFill="True">
+        <DockPanel LastChildFill="True"  Visibility="{Binding ShowWebView, Converter={StaticResource BooleanToVisibilityConverter}}">
             <ToolBar DockPanel.Dock="Top" Height="Auto" Background="LightGray">
                 <Button Command="{Binding SuggestCommand}" ToolTip="Suggest Answers">
                     <materialDesign:PackIcon Kind="LightbulbOutline"/>
@@ -33,11 +32,12 @@
                     <materialDesign:PackIcon Kind="Settings"/>
                 </Button>
             </ToolBar>
-            <wv2:WebView2 Name="webView" DockPanel.Dock="Bottom"
-                  VerticalAlignment="Stretch"
-                  HorizontalAlignment="Stretch"/>
+            <wv2:WebView2 Name="webView" DockPanel.Dock="Bottom" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+
         </DockPanel>
-        <materialDesign:DialogHost Identifier="RootDialog" CloseOnClickAway="True">
-        </materialDesign:DialogHost>
+
+        <DockPanel LastChildFill="True"  Visibility="{Binding ShowSuggestions, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <suggestions:SuggestionView  VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+        </DockPanel>
     </Grid>
 </Window>

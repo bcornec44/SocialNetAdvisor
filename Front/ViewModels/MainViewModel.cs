@@ -23,8 +23,19 @@ internal partial class MainViewModel : ObservableObject
     private const string _mockUrl = "C:\\Users\\benja\\Documents\\test.html";
     private ISuggestionConnector _suggestionConnector;
 
-    public ObservableCollection<SuggestionItem> Suggestions { get; set; } = new ObservableCollection<SuggestionItem>();
+    private string _suggestionHtml;
+    public string SuggestionHtml
+    {
+        get => _suggestionHtml;
+        set => SetProperty(ref _suggestionHtml, value);
+    }
 
+    private string _selectedTextHtml;
+    public string SelectedTextHtml
+    {
+        get => _selectedTextHtml;
+        set => SetProperty(ref _selectedTextHtml, value);
+    }
 
     private bool _isLoading;
     public bool IsLoading
@@ -40,24 +51,26 @@ internal partial class MainViewModel : ObservableObject
         set => SetProperty(ref _progress, value);
     }
 
-    private int _selectedTabIndex;
-    public int SelectedTabIndex
+    private bool _showSuggestions;
+    public bool ShowSuggestions
     {
-        get => _selectedTabIndex;
-        set => SetProperty(ref _selectedTabIndex, value);
+        get => _showSuggestions;
+        set
+        {
+            _showSuggestions = value;
+            OnPropertyChanged(nameof(ShowSuggestions));
+            OnPropertyChanged(nameof(ShowWebView));
+        }
     }
+
+    public bool ShowWebView => !_showSuggestions;
+
 
     public MainViewModel()
     {
+        ShowSuggestions = false;
         SuggestCommand = new AsyncRelayCommand(Suggest);
         SaveCookieCommand = new AsyncRelayCommand(SaveCookie);
-        Suggestions.CollectionChanged += (s, e) =>
-        {
-            if (Suggestions.Count > 0)
-            {
-                SelectedTabIndex = 1;
-            }
-        };
     }
 
     public IAsyncRelayCommand SuggestCommand { get; }
@@ -71,7 +84,7 @@ internal partial class MainViewModel : ObservableObject
     {
         _webView = webView;
         await LoadWebView();
-        _suggestionConnector = new SuggestionMockConnector();
+        _suggestionConnector = new OllamaConnector();
         _suggestionConnector.Initialize();
     }
 
@@ -90,8 +103,8 @@ internal partial class MainViewModel : ObservableObject
                         args.State = CoreWebView2PermissionState.Deny;
                     }
                 };
-                _webView.CoreWebView2.Navigate(_mockUrl);
-                //webView.CoreWebView2.Navigate(_facebookUrl);
+                //_webView.CoreWebView2.Navigate(_mockUrl);
+                _webView.CoreWebView2.Navigate(_facebookUrl);
 
                 if (HasCookie())
                 {
@@ -107,53 +120,35 @@ internal partial class MainViewModel : ObservableObject
     {
         IsLoading = true;
         Progress = 0;
-        Suggestions.Clear();
+        SuggestionHtml = string.Empty;
         var contextBySelectedText = await GetContextBySelectedText();
         var contextByIdenfiedPost = await GetContextByIdenfiedPost();
-
-        var contexts = new List<string>
+        SelectedTextHtml = contextBySelectedText;
+        if (!string.IsNullOrEmpty(contextByIdenfiedPost))
         {
-            contextBySelectedText,
-            contextByIdenfiedPost,
-            contextByIdenfiedPost
-        };
-
-        if (contexts.Any(p => !string.IsNullOrEmpty(p)))
-        {
-            contexts.Add(contextBySelectedText);
-        }
-        else
-        {
-            contexts.Add(await GetContextByFullPageContent());
+            SelectedTextHtml = contextByIdenfiedPost;
         }
 
+        ShowSuggestions = true;
         Progress = 50;
-        var availableContexts = contexts.Where(p => !string.IsNullOrEmpty(p)).ToList();
-        var i = 0;
-        foreach (var context in availableContexts)
+        var suggestion = new SuggestionItem();
+
+        try
         {
-
-            var suggestion = new SuggestionItem();
-            Suggestions.Add(suggestion);
-
-            try
+            await foreach (var suggestionPart in _suggestionConnector.GetSuggestion(SelectedTextHtml))
             {
-                await foreach (var suggestionPart in _suggestionConnector.GetSuggestion(context))
-                {
-                    suggestion.Text = suggestion.Text + suggestionPart;
-                }
+                suggestion.Text = suggestion.Text + suggestionPart;
             }
-            catch (Exception ex)
-            {
-                suggestion.Text = "Error on client side";
-            }
-            File.WriteAllText($"suggestion{i}.txt", $"{context}{Environment.NewLine}{Environment.NewLine}{Environment.NewLine}{suggestion.Text}");
-            i++;
-            Progress = 50 + (i * 50 / availableContexts.Count);
-            break;
         }
+        catch (Exception ex)
+        {
+            suggestion.Text = "Error on client side";
+        }
+        File.WriteAllText($"suggestion.txt", $"{SelectedTextHtml}{Environment.NewLine}{Environment.NewLine}{Environment.NewLine}{suggestion.Text}");
+
+        Progress = 100;
         IsLoading = false;
-        await ShowSuggestionDialog(Suggestions.FirstOrDefault().Text);
+        SuggestionHtml = suggestion.Text;
     }
 
     private async Task<string> GetContextByIdenfiedPost()
@@ -205,7 +200,7 @@ internal partial class MainViewModel : ObservableObject
     private async Task<string> GetBodyText()
     {
         var script = "document.body.innerText";
-        string pageText = await Application.Current.Dispatcher.Invoke(async() =>
+        string pageText = await Application.Current.Dispatcher.Invoke(async () =>
         {
             return await _webView.CoreWebView2.ExecuteScriptAsync(script);
         });
@@ -334,22 +329,4 @@ internal partial class MainViewModel : ObservableObject
         string json = JsonSerializer.Serialize(cookies);
         await File.WriteAllTextAsync(GetCookieName(), json);
     }
-
-    public async Task ShowSuggestionDialog(string input)
-    {
-
-        await Application.Current.Dispatcher.InvokeAsync(async () =>
-        {
-            var suggestionView = new SuggestionView { DataContext = new SuggestionViewModel(input) };
-            try
-            {
-                await DialogHost.Show(suggestionView, "RootDialog");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Erreur lors de l'affichage du dialogue: {ex.Message}");
-            }
-        });
-    }
-
 }
