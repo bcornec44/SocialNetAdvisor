@@ -3,9 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:viewModels="clr-namespace:SocialNetAdvisor.ViewModels"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        xmlns:viewModels="clr-namespace:SocialNetAdvisor.ViewModels"
         Title="MainWindow"
         WindowState="Maximized"
         Loaded="Window_Loaded"
@@ -16,54 +16,28 @@
     <Window.DataContext>
         <viewModels:MainViewModel x:Name="ViewModel"/>
     </Window.DataContext>
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,20">
-            <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding SuggestCommand}" ToolTip="Suggest Answers" Margin="5,0">
-                <materialDesign:PackIcon Kind="LightbulbOutline" />
-            </Button>
-            <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding SaveCookieCommand}" ToolTip="Save cookie" Margin="5,0">
-                <materialDesign:PackIcon Kind="Cookie" />
-            </Button>
-            <ProgressBar Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" Value="{Binding Progress}" Width="200" Margin="5"/>
-        </StackPanel>
-
-        <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTabIndex}">
-            <TabItem Header="Web View">
-                <wv2:WebView2 Name="webView"
-                              VerticalAlignment="Stretch"
-                              HorizontalAlignment="Stretch"/>
-            </TabItem>
-            <TabItem Header="Suggestions">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding Suggestions}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="5" Padding="5" Margin="5">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="*"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-                                        <TextBox Grid.Row="0" Text="{Binding Text}" TextWrapping="Wrap" 
-                                                 IsReadOnly="True" VerticalScrollBarVisibility="Auto"/>
-                                        <Button Grid.Row="1" Command="{Binding CopyCommand}" 
-                                                Style="{StaticResource MaterialDesignFlatButton}" 
-                                                ToolTip="Copier dans le presse-papiers" 
-                                                HorizontalAlignment="Right">
-                                            <materialDesign:PackIcon Kind="ContentCopy"/>
-                                        </Button>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </TabItem>
-        </TabControl>
+    <Grid>
+        <DockPanel LastChildFill="True">
+            <ToolBar DockPanel.Dock="Top" Height="Auto" Background="LightGray">
+                <Button Command="{Binding SuggestCommand}" ToolTip="Suggest Answers">
+                    <materialDesign:PackIcon Kind="LightbulbOutline"/>
+                </Button>
+                <Separator/>
+                <Button Command="{Binding HomeCommand}" ToolTip="Home">
+                    <materialDesign:PackIcon Kind="Home"/>
+                </Button>
+                <TextBox Width="400" Text="{Binding AddressBar, Mode=TwoWay}"/>
+                <Button Command="{Binding GoToUrlCommand}" Content="Go"/>
+                <Button Command="{Binding SettingsCommand}" ToolTip="Settings">
+                    <materialDesign:PackIcon Kind="Settings"/>
+                </Button>
+            </ToolBar>
+            <wv2:WebView2 Name="webView" DockPanel.Dock="Bottom"
+                  VerticalAlignment="Stretch"
+                  HorizontalAlignment="Stretch"/>
+        </DockPanel>
+        <materialDesign:DialogHost Identifier="RootDialog" CloseOnClickAway="True">
+        </materialDesign:DialogHost>
     </Grid>
 </Window>

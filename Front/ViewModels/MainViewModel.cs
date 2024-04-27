@@ -1,6 +1,7 @@
 ﻿using Common.Connectors;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MaterialDesignThemes.Wpf;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using SocialNetAdvisor.Helpers;
@@ -11,12 +12,15 @@ using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Input;
+using System.Windows.Interop;
 namespace SocialNetAdvisor.ViewModels;
 
 internal partial class MainViewModel : ObservableObject
 {
     private WebView2 _webView;
     private const string _facebookUrl = "https://www.facebook.com/";
+    private const string _mockUrl = "C:\\Users\\benja\\Documents\\test.html";
     private ISuggestionConnector _suggestionConnector;
 
     public ObservableCollection<SuggestionItem> Suggestions { get; set; } = new ObservableCollection<SuggestionItem>();
@@ -58,31 +62,36 @@ internal partial class MainViewModel : ObservableObject
 
     public IAsyncRelayCommand SuggestCommand { get; }
     public IAsyncRelayCommand SaveCookieCommand { get; }
+    public ICommand HomeCommand { get; }
+    public ICommand GoToUrlCommand { get; }
+    public ICommand SettingsCommand { get; }
+
 
     internal async Task Loaded(WebView2 webView)
     {
-        await LoadWebView(webView);
+        _webView = webView;
+        await LoadWebView();
         _suggestionConnector = new SuggestionMockConnector();
         _suggestionConnector.Initialize();
     }
 
-    public async Task LoadWebView(WebView2 webView)
+    public async Task LoadWebView()
     {
-        await webView.EnsureCoreWebView2Async(null).ContinueWith(task =>
+        await _webView.EnsureCoreWebView2Async(null).ContinueWith(task =>
         {
             Application.Current.Dispatcher.InvokeAsync(async () =>
             {
-                _webView = webView;
-                webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
-                webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
-                webView.CoreWebView2.PermissionRequested += (sender, args) =>
+                _webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
+                _webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+                _webView.CoreWebView2.PermissionRequested += (sender, args) =>
                 {
                     if (args.PermissionKind == CoreWebView2PermissionKind.Notifications)
                     {
                         args.State = CoreWebView2PermissionState.Deny;
                     }
                 };
-                webView.CoreWebView2.Navigate(_facebookUrl);
+                _webView.CoreWebView2.Navigate(_mockUrl);
+                //webView.CoreWebView2.Navigate(_facebookUrl);
 
                 if (HasCookie())
                 {
@@ -141,8 +150,10 @@ internal partial class MainViewModel : ObservableObject
             File.WriteAllText($"suggestion{i}.txt", $"{context}{Environment.NewLine}{Environment.NewLine}{Environment.NewLine}{suggestion.Text}");
             i++;
             Progress = 50 + (i * 50 / availableContexts.Count);
+            break;
         }
         IsLoading = false;
+        await ShowSuggestionDialog(Suggestions.FirstOrDefault().Text);
     }
 
     private async Task<string> GetContextByIdenfiedPost()
@@ -289,7 +300,8 @@ internal partial class MainViewModel : ObservableObject
 
     private bool HasCookie()
     {
-        return File.Exists(GetCookieName());
+        string name = GetCookieName();
+        return File.Exists(name);
     }
 
     private string GetCookieName(string driverName)
@@ -305,6 +317,10 @@ internal partial class MainViewModel : ObservableObject
     private async Task LoadCookie()
     {
         string json = await File.ReadAllTextAsync(GetCookieName());
+        if (json == "[]")
+        {
+            return;
+        }
         var cookie = JsonSerializer.Deserialize<CoreWebView2Cookie>(json);
         var cookieManager = _webView.CoreWebView2.CookieManager;
         cookie = cookieManager.CreateCookie(cookie.Name, cookie.Value, cookie.Domain, cookie.Path);
@@ -318,4 +334,22 @@ internal partial class MainViewModel : ObservableObject
         string json = JsonSerializer.Serialize(cookies);
         await File.WriteAllTextAsync(GetCookieName(), json);
     }
+
+    public async Task ShowSuggestionDialog(string input)
+    {
+
+        await Application.Current.Dispatcher.InvokeAsync(async () =>
+        {
+            var suggestionView = new SuggestionView { DataContext = new SuggestionViewModel(input) };
+            try
+            {
+                await DialogHost.Show(suggestionView, "RootDialog");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur lors de l'affichage du dialogue: {ex.Message}");
+            }
+        });
+    }
+
 }
