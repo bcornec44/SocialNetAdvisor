@@ -131,25 +131,25 @@ internal partial class MainViewModel : ObservableObject
 
         ShowSuggestions = true;
         Progress = 50;
-        var suggestion = new SuggestionItem();
 
         try
         {
             await foreach (var suggestionPart in _suggestionConnector.GetSuggestion(SelectedTextHtml))
             {
-                suggestion.Text = suggestion.Text + suggestionPart;
+                SuggestionHtml = SuggestionHtml + suggestionPart;
             }
         }
         catch (Exception ex)
         {
-            suggestion.Text = "Error on client side";
+            SuggestionHtml = "Error on client side";
         }
-        File.WriteAllText($"suggestion.txt", $"{SelectedTextHtml}{Environment.NewLine}{Environment.NewLine}{Environment.NewLine}{suggestion.Text}");
+        File.WriteAllText($"suggestion.txt", $"{SelectedTextHtml}{Environment.NewLine}{Environment.NewLine}{Environment.NewLine}{SuggestionHtml}");
 
         Progress = 100;
         IsLoading = false;
-        SuggestionHtml = suggestion.Text;
     }
+
+    /// TODO mapper les boutons, corriger l'affichage des textes
 
     private async Task<string> GetContextByIdenfiedPost()
     {
