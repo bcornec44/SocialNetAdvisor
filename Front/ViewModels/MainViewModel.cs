@@ -69,12 +69,14 @@ internal partial class MainViewModel : ObservableObject
         SuggestCommand = new AsyncRelayCommand(Suggest);
         SuggestAgainCommand = new AsyncRelayCommand(SuggestAgain);
         CancelCommand = new RelayCommand(Cancel);
+        CopyCommand = new RelayCommand(Copy);
         SaveCookieCommand = new AsyncRelayCommand(SaveCookie);
     }
 
     public IAsyncRelayCommand SuggestCommand { get; }
     public IAsyncRelayCommand SuggestAgainCommand { get; }
-    public ICommand CancelCommand { get; }
+    public IRelayCommand CopyCommand { get; }
+    public IRelayCommand CancelCommand { get; }
     public IAsyncRelayCommand SaveCookieCommand { get; }
     public ICommand HomeCommand { get; }
     public ICommand GoToUrlCommand { get; }
@@ -85,7 +87,7 @@ internal partial class MainViewModel : ObservableObject
     {
         _webView = webView;
         await LoadWebView();
-        _suggestionConnector = new SuggestionMockConnector();
+        _suggestionConnector = new OllamaConnector();
         _suggestionConnector.Initialize();
     }
 
@@ -105,7 +107,7 @@ internal partial class MainViewModel : ObservableObject
                     }
                 };
                 //_webView.CoreWebView2.Navigate(_mockUrl);
-                _webView.CoreWebView2.Navigate(_mockUrl);
+                _webView.CoreWebView2.Navigate(_facebookUrl);
 
                 if (HasCookie())
                 {
@@ -123,6 +125,11 @@ internal partial class MainViewModel : ObservableObject
         ShowSuggestions = false;
     }
 
+    private void Copy()
+    {
+        Clipboard.SetText(SuggestionHtml);        
+        Cancel();
+    }
 
     private async Task SuggestAgain(CancellationToken cancellationToken)
     {

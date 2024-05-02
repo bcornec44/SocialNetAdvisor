@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
     <StackPanel>
+        <!-- Zones de texte pour HTML et suggestions -->
         <RichTextBox Height="100" IsReadOnly="True" IsDocumentEnabled="True">
             <FlowDocument>
                 <Paragraph>
@@ -10,7 +11,6 @@
                 </Paragraph>
             </FlowDocument>
         </RichTextBox>
-
         <RichTextBox Height="200" IsDocumentEnabled="True">
             <FlowDocument>
                 <Paragraph>
@@ -19,19 +19,32 @@
             </FlowDocument>
         </RichTextBox>
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Command="{Binding CancelCommand}" Background="Orange">
+        <!-- Panel pour les boutons avec répartition spécifique -->
+        <DockPanel LastChildFill="True">
+            <Button Command="{Binding CancelCommand}" Background="Orange" DockPanel.Dock="Left">
                 <materialDesign:PackIcon Kind="Cancel"/>
             </Button>
-            <Button Command="{Binding SettingsCommand}">
-                <materialDesign:PackIcon Kind="Settings"/>
-            </Button>
-            <Button Command="{Binding SuggestAgainCommand}">
-                <materialDesign:PackIcon Kind="Autorenew"/>
-            </Button>
-            <Button Command="{Binding CopyCommand}" Background="Green">
-                <materialDesign:PackIcon Kind="ContentCopy"/>
-            </Button>
-        </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                <Button Command="{Binding SettingsCommand}">
+                    <materialDesign:PackIcon Kind="Settings"/>
+                </Button>
+                <Button Command="{Binding SuggestAgainCommand}" Width="120" Height="40">
+                    <materialDesign:PackIcon Kind="Autorenew"/>
+                    <!-- Utilisation d'un ContextMenu pour le menu déroulant -->
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Command="{Binding HappyCommand}" Header="Happy"/>
+                            <MenuItem Command="{Binding AngryCommand}" Header="Angry"/>
+                            <MenuItem Command="{Binding PoliteCommand}" Header="Polite"/>
+                            <MenuItem Command="{Binding ProfessionalCommand}" Header="Professional"/>
+                            <MenuItem Command="{Binding FriendlyCommand}" Header="Friendly"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
+                <Button Command="{Binding CopyCommand}" Background="Green" Width="120" Height="40">
+                    <materialDesign:PackIcon Kind="ContentCopy"/>
+                </Button>
+            </StackPanel>
+        </DockPanel>
     </StackPanel>
 </UserControl>
