@@ -1,19 +1,16 @@
 ﻿using Common.Connectors;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MaterialDesignThemes.Wpf;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using SocialNetAdvisor.Helpers;
-using SocialNetAdvisor.Models;
 using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Interop;
 namespace SocialNetAdvisor.ViewModels;
 
 internal partial class MainViewModel : ObservableObject
@@ -70,10 +67,14 @@ internal partial class MainViewModel : ObservableObject
     {
         ShowSuggestions = false;
         SuggestCommand = new AsyncRelayCommand(Suggest);
+        SuggestAgainCommand = new AsyncRelayCommand(SuggestAgain);
+        CancelCommand = new RelayCommand(Cancel);
         SaveCookieCommand = new AsyncRelayCommand(SaveCookie);
     }
 
     public IAsyncRelayCommand SuggestCommand { get; }
+    public IAsyncRelayCommand SuggestAgainCommand { get; }
+    public ICommand CancelCommand { get; }
     public IAsyncRelayCommand SaveCookieCommand { get; }
     public ICommand HomeCommand { get; }
     public ICommand GoToUrlCommand { get; }
@@ -84,7 +85,7 @@ internal partial class MainViewModel : ObservableObject
     {
         _webView = webView;
         await LoadWebView();
-        _suggestionConnector = new OllamaConnector();
+        _suggestionConnector = new SuggestionMockConnector();
         _suggestionConnector.Initialize();
     }
 
@@ -104,7 +105,7 @@ internal partial class MainViewModel : ObservableObject
                     }
                 };
                 //_webView.CoreWebView2.Navigate(_mockUrl);
-                _webView.CoreWebView2.Navigate(_facebookUrl);
+                _webView.CoreWebView2.Navigate(_mockUrl);
 
                 if (HasCookie())
                 {
@@ -114,6 +115,30 @@ internal partial class MainViewModel : ObservableObject
                 await SaveCookie();
             });
         });
+    }
+
+    private void Cancel()
+    {
+        SuggestCommand.Cancel();
+        ShowSuggestions = false;
+    }
+
+
+    private async Task SuggestAgain(CancellationToken cancellationToken)
+    {
+        SuggestCommand.Cancel();
+        var i = 0;
+        while (IsLoading)
+        {
+            await Task.Delay(100, cancellationToken);
+            i++;
+            if (i > 10000)
+            {
+                throw new Exception("couldnt stop previous suggestion");
+            }
+        }
+        
+        SuggestCommand.Execute(null);
     }
 
     private async Task Suggest(CancellationToken cancellationToken)
@@ -134,9 +159,9 @@ internal partial class MainViewModel : ObservableObject
 
         try
         {
-            await foreach (var suggestionPart in _suggestionConnector.GetSuggestion(SelectedTextHtml))
+            await foreach (var suggestionPart in _suggestionConnector.GetSuggestion(SelectedTextHtml, cancellationToken))
             {
-                SuggestionHtml = SuggestionHtml + suggestionPart;
+                SuggestionHtml += suggestionPart;
             }
         }
         catch (Exception ex)

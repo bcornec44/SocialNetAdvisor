@@ -15,7 +15,7 @@ public class SuggestionApiConnector : ISuggestionConnector
         };
     }
 
-    public async IAsyncEnumerable<string> GetSuggestion(string context)
+    public async IAsyncEnumerable<string> GetSuggestion(string context, CancellationToken cancellationToken)
     {
         var isEmpty = true;
         string message = "Error on server side, please contact your admnistrator";

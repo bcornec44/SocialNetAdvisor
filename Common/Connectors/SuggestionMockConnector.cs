@@ -5,9 +5,32 @@ public class SuggestionMockConnector : ISuggestionConnector
     public void Initialize()
     {
     }
-    public async IAsyncEnumerable<string> GetSuggestion(string context)
+    
+    public async IAsyncEnumerable<string> GetSuggestion(string context, CancellationToken cancellationToken)
     {
-        await Task.Delay(1000);
-        yield return context;
+        await Task.Delay(1000, cancellationToken);
+        foreach (var chunk in SplitStringInChunks(context, 7))
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                yield break;
+            }
+
+            yield return chunk;
+            await Task.Delay(1000, cancellationToken);
+        }
+    }
+
+    static List<string> SplitStringInChunks(string input, int chunkSize)
+    {
+        List<string> chunks = [];
+        for (int i = 0; i < input.Length; i += chunkSize)
+        {
+            if (i + chunkSize <= input.Length)
+                chunks.Add(input.Substring(i, chunkSize));
+            else
+                chunks.Add(input[i..]);
+        }
+        return chunks;
     }
 }

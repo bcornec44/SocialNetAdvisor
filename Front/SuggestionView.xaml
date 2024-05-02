@@ -1,14 +1,37 @@
 ﻿<UserControl x:Class="SocialNetAdvisor.SuggestionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
     <StackPanel>
-        <TextBox Text="{Binding SelectedTextHtml, Mode=TwoWay}" Height="100" IsReadOnly="True"/>
-        <TextBox Text="{Binding SuggestionHtml, Mode=TwoWay}" Height="200"/>
+        <RichTextBox Height="100" IsReadOnly="True" IsDocumentEnabled="True">
+            <FlowDocument>
+                <Paragraph>
+                    <Run Text="{Binding SelectedTextHtml}"/>
+                </Paragraph>
+            </FlowDocument>
+        </RichTextBox>
+
+        <RichTextBox Height="200" IsDocumentEnabled="True">
+            <FlowDocument>
+                <Paragraph>
+                    <Run Text="{Binding SuggestionHtml, Mode=TwoWay}"/>
+                </Paragraph>
+            </FlowDocument>
+        </RichTextBox>
+
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Command="{Binding CancelCommand}" Content="Cancel" Background="Orange"/>
-            <Button Command="{Binding SettingsCommand}" Content="Settings"/>
-            <Button Command="{Binding GenerateCommand}" Content="Generate"/>
-            <Button Command="{Binding CopyCommand}" Content="Copy" Background="Green"/>
+            <Button Command="{Binding CancelCommand}" Background="Orange">
+                <materialDesign:PackIcon Kind="Cancel"/>
+            </Button>
+            <Button Command="{Binding SettingsCommand}">
+                <materialDesign:PackIcon Kind="Settings"/>
+            </Button>
+            <Button Command="{Binding SuggestAgainCommand}">
+                <materialDesign:PackIcon Kind="Autorenew"/>
+            </Button>
+            <Button Command="{Binding CopyCommand}" Background="Green">
+                <materialDesign:PackIcon Kind="ContentCopy"/>
+            </Button>
         </StackPanel>
     </StackPanel>
 </UserControl>

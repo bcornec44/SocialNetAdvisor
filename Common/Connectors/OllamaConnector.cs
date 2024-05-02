@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using System.Text.Json;
 using System.Text;
+using System.Threading;
 namespace Common.Connectors;
 
 public class OllamaConnector : ISuggestionConnector
@@ -15,7 +16,7 @@ public class OllamaConnector : ISuggestionConnector
         _client = new HttpClient();
     }
 
-    public async IAsyncEnumerable<string> GetSuggestion(string context)
+    public async IAsyncEnumerable<string> GetSuggestion(string context, CancellationToken cancellationToken)
     {
         var isEmpty = true;
         string message = "Error on server side, please contact your admnistrator";
@@ -38,14 +39,14 @@ public class OllamaConnector : ISuggestionConnector
             Content = new StringContent(JsonSerializer.Serialize(chatRequest), Encoding.UTF8, "application/json")
         };
         HttpCompletionOption completionOption = HttpCompletionOption.ResponseHeadersRead;
-        using HttpResponseMessage response = await _client.SendAsync(request, completionOption);
+        using HttpResponseMessage response = await _client.SendAsync(request, completionOption, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
             yield return message;
         }
-        var stream = await response.Content.ReadAsStreamAsync();
-        await foreach (var suggestion in ParseStream(stream))
+        var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        await foreach (var suggestion in ParseStream(stream, cancellationToken))
         {
             if (isEmpty)
             {
@@ -61,11 +62,11 @@ public class OllamaConnector : ISuggestionConnector
         }
     }
 
-    private async IAsyncEnumerable<string> ParseStream(Stream stream)
+    private async IAsyncEnumerable<string> ParseStream(Stream stream, CancellationToken cancellationToken)
     {
         using var reader = new StreamReader(stream);
         string? line;
-        while ((line = await reader.ReadLineAsync()) != null)
+        while ((line = await reader.ReadLineAsync(cancellationToken)) != null)
         {
             string result = string.Empty;
             try

@@ -17,7 +17,7 @@ public class SuggestionController : ControllerBase
     }
 
     [HttpPost]
-    public async Task GetSuggestion([FromBody] string context)
+    public async Task GetSuggestion([FromBody] string context, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(context))
         {
@@ -30,7 +30,7 @@ public class SuggestionController : ControllerBase
 
         try
         {
-            await foreach (var suggestion in _suggestionConnector.GetSuggestion(context))
+            await foreach (var suggestion in _suggestionConnector.GetSuggestion(context, cancellationToken))
             {
                 if (!Response.HasStarted)
                 {
