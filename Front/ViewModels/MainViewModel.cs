@@ -189,6 +189,8 @@ internal partial class MainViewModel : ObservableObject
             SelectedTextHtml = contextByIdenfiedPost;
         }
 
+        SelectedTextHtml = SelectedTextHtml.Replace("\r\n", "<br/>").Replace("\r", "<br/>").Replace("\n", "<br/>").Replace("\\n", "\r\n");
+
         ShowSuggestions = true;
         Progress = 50;
 
