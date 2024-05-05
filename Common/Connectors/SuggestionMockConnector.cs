@@ -6,9 +6,10 @@ public class SuggestionMockConnector : ISuggestionConnector
     {
     }
     
-    public async IAsyncEnumerable<string> GetSuggestion(string context, CancellationToken cancellationToken)
+    public async IAsyncEnumerable<string> GetSuggestion(string context, string personality, CancellationToken cancellationToken)
     {
-        await Task.Delay(1000, cancellationToken);
+        yield return personality;
+        await Task.Delay(100, cancellationToken);
         foreach (var chunk in SplitStringInChunks(context, 7))
         {
             if (cancellationToken.IsCancellationRequested)
@@ -17,7 +18,7 @@ public class SuggestionMockConnector : ISuggestionConnector
             }
 
             yield return chunk;
-            await Task.Delay(1000, cancellationToken);
+            await Task.Delay(100, cancellationToken);
         }
     }
 

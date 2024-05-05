@@ -6,19 +6,20 @@ namespace Common.Connectors;
 
 public class OllamaConnector : ISuggestionConnector
 {
-    private string _template = string.Empty;
+    private Dictionary<string, string> _templateByPersonality = new Dictionary<string, string>();
     private string _url = "http://localhost:11434/api/chat";
     private HttpClient? _client;
 
     public void Initialize()
     {
-        _template = "I'm going to write you a post that I read on social networks. I want you to read it and I want you to answer it for me, to comment on it. I want you to write as someone on the internet would write. The post has a strong opinion, I want you to convince the author of the post that either his information is inaccurate or that the opposite opinion is better. Just give me the answer in French, nothing in English. Here's the post: ";
+        _templateByPersonality[string.Empty] = "I'm going to write you a post that I read on social networks. I want you to read it and I want you to answer it for me, to comment on it. I want you to write as someone on the internet would write. The post has a strong opinion, I want you to convince the author of the post that either his information is inaccurate or that the opposite opinion is better. Just give me the answer in French, nothing in English. Here's the post: ";
         _client = new HttpClient();
     }
 
-    public async IAsyncEnumerable<string> GetSuggestion(string context, CancellationToken cancellationToken)
+    public async IAsyncEnumerable<string> GetSuggestion(string context, string personality, CancellationToken cancellationToken)
     {
         var isEmpty = true;
+        var template = GetTemplate(personality);
         string message = "Error on server side, please contact your admnistrator";
         var chatRequest = new ChatRequest
         {
@@ -28,11 +29,10 @@ public class OllamaConnector : ISuggestionConnector
                 new Message
                 {
                     Role = "user",
-                    Content = _template + context
+                    Content = template + context
                 }
             }
         };
-
 
         HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, _url)
         {
@@ -60,6 +60,15 @@ public class OllamaConnector : ISuggestionConnector
         {
             yield return message;
         }
+    }
+
+    private string GetTemplate(string personality)
+    {
+        if (_templateByPersonality.TryGetValue(personality, out var template))
+        {
+            return template;
+        }
+        return _templateByPersonality[string.Empty];
     }
 
     private async IAsyncEnumerable<string> ParseStream(Stream stream, CancellationToken cancellationToken)

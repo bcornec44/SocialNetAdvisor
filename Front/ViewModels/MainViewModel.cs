@@ -5,10 +5,11 @@ using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using SocialNetAdvisor.Helpers;
 using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.IO;
+using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Windows;
 using System.Windows.Input;
 namespace SocialNetAdvisor.ViewModels;
@@ -16,9 +17,8 @@ namespace SocialNetAdvisor.ViewModels;
 internal partial class MainViewModel : ObservableObject
 {
     private WebView2 _webView;
-    private const string _facebookUrl = "https://www.facebook.com/";
-    private const string _mockUrl = "C:\\Users\\benja\\Documents\\test.html";
     private ISuggestionConnector _suggestionConnector;
+    private string _personality = "";
 
     private string _suggestionHtml;
     public string SuggestionHtml
@@ -48,6 +48,31 @@ internal partial class MainViewModel : ObservableObject
         set => SetProperty(ref _progress, value);
     }
 
+    private string _defaultUrl = "https://www.google.com";
+    private string _url;
+    public string Url
+    {
+        get => _url;
+        set
+        {
+            if (!value.StartsWith("http", StringComparison.InvariantCultureIgnoreCase) && !value.StartsWith("c:", StringComparison.InvariantCultureIgnoreCase))
+            {
+                Url = "https://www.google.com/search?q=" + value;
+            }
+            if (SetProperty(ref _url, value))
+            {
+                try
+                {
+                    _webView.CoreWebView2.Navigate(value);
+                }
+                catch (Exception)
+                {
+                    Url = "https://www.google.com/search?q=" + value;
+                }
+            }
+        }
+    }
+
     private bool _showSuggestions;
     public bool ShowSuggestions
     {
@@ -68,18 +93,22 @@ internal partial class MainViewModel : ObservableObject
         ShowSuggestions = false;
         SuggestCommand = new AsyncRelayCommand(Suggest);
         SuggestAgainCommand = new AsyncRelayCommand(SuggestAgain);
+        ChangePersonalityAndSuggestCommand = new AsyncRelayCommand<string>(ChangePersonalityAndSuggest);
         CancelCommand = new RelayCommand(Cancel);
         CopyCommand = new RelayCommand(Copy);
-        SaveCookieCommand = new AsyncRelayCommand(SaveCookie);
+        GoToUrlCommand = new RelayCommand(GoToUrl);
+        GoToCommand = new RelayCommand<string>(GoTo);
+        HomeCommand = new RelayCommand(Home);
     }
 
     public IAsyncRelayCommand SuggestCommand { get; }
     public IAsyncRelayCommand SuggestAgainCommand { get; }
+    public IAsyncRelayCommand ChangePersonalityAndSuggestCommand { get; }
     public IRelayCommand CopyCommand { get; }
     public IRelayCommand CancelCommand { get; }
-    public IAsyncRelayCommand SaveCookieCommand { get; }
     public ICommand HomeCommand { get; }
     public ICommand GoToUrlCommand { get; }
+    public ICommand GoToCommand { get; }
     public ICommand SettingsCommand { get; }
 
 
@@ -87,7 +116,7 @@ internal partial class MainViewModel : ObservableObject
     {
         _webView = webView;
         await LoadWebView();
-        _suggestionConnector = new OllamaConnector();
+        _suggestionConnector = new SuggestionMockConnector();
         _suggestionConnector.Initialize();
     }
 
@@ -95,7 +124,7 @@ internal partial class MainViewModel : ObservableObject
     {
         await _webView.EnsureCoreWebView2Async(null).ContinueWith(task =>
         {
-            Application.Current.Dispatcher.InvokeAsync(async () =>
+            Application.Current.Dispatcher.Invoke(() =>
             {
                 _webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
                 _webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
@@ -106,15 +135,8 @@ internal partial class MainViewModel : ObservableObject
                         args.State = CoreWebView2PermissionState.Deny;
                     }
                 };
-                //_webView.CoreWebView2.Navigate(_mockUrl);
-                _webView.CoreWebView2.Navigate(_facebookUrl);
 
-                if (HasCookie())
-                {
-                    await LoadCookie();
-                    await Wait.S(3, default(CancellationToken));
-                }
-                await SaveCookie();
+                Home();
             });
         });
     }
@@ -131,6 +153,12 @@ internal partial class MainViewModel : ObservableObject
         Cancel();
     }
 
+    private async Task ChangePersonalityAndSuggest(string personality, CancellationToken cancellationToken)
+    {
+        _personality = personality;
+        await SuggestAgain(cancellationToken);
+    }
+
     private async Task SuggestAgain(CancellationToken cancellationToken)
     {
         SuggestCommand.Cancel();
@@ -144,7 +172,7 @@ internal partial class MainViewModel : ObservableObject
                 throw new Exception("couldnt stop previous suggestion");
             }
         }
-        
+
         SuggestCommand.Execute(null);
     }
 
@@ -166,7 +194,7 @@ internal partial class MainViewModel : ObservableObject
 
         try
         {
-            await foreach (var suggestionPart in _suggestionConnector.GetSuggestion(SelectedTextHtml, cancellationToken))
+            await foreach (var suggestionPart in _suggestionConnector.GetSuggestion(SelectedTextHtml, _personality, cancellationToken))
             {
                 SuggestionHtml += suggestionPart;
             }
@@ -292,6 +320,7 @@ internal partial class MainViewModel : ObservableObject
         input = CleanLastText(input, Environment.NewLine);
         input = CleanLastText(input, "J’aime");
         input = CleanLastText(input, Environment.NewLine);
+        input.Replace(Environment.NewLine, "<br/>");
         return input;
     }
 
@@ -324,41 +353,19 @@ internal partial class MainViewModel : ObservableObject
 
         return source;
     }
-
-    private bool HasCookie()
+    
+    private void GoToUrl()
     {
-        string name = GetCookieName();
-        return File.Exists(name);
+        OnPropertyChanged(nameof(Url));
     }
 
-    private string GetCookieName(string driverName)
+    private void GoTo(string? url)
     {
-        return $"cookies{Regex.Replace(driverName, "[^A-Za-z0-9 -]", "")}.json";
+        Url = url;
     }
 
-    private string GetCookieName()
+    private void Home()
     {
-        return GetCookieName(_webView.Source.ToString());
-    }
-
-    private async Task LoadCookie()
-    {
-        string json = await File.ReadAllTextAsync(GetCookieName());
-        if (json == "[]")
-        {
-            return;
-        }
-        var cookie = JsonSerializer.Deserialize<CoreWebView2Cookie>(json);
-        var cookieManager = _webView.CoreWebView2.CookieManager;
-        cookie = cookieManager.CreateCookie(cookie.Name, cookie.Value, cookie.Domain, cookie.Path);
-        cookieManager.AddOrUpdateCookie(cookie);
-    }
-
-    private async Task SaveCookie()
-    {
-        var cookieManager = _webView.CoreWebView2.CookieManager;
-        var cookies = await cookieManager.GetCookiesAsync(GetCookieName());
-        string json = JsonSerializer.Serialize(cookies);
-        await File.WriteAllTextAsync(GetCookieName(), json);
+        Url = _defaultUrl;
     }
 }

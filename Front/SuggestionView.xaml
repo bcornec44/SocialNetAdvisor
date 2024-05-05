@@ -25,21 +25,29 @@
                 <materialDesign:PackIcon Kind="Cancel"/>
             </Button>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
-                <Button Command="{Binding SettingsCommand}">
+                <Button Command="{Binding SettingsCommand}" Background="LightGray">
                     <materialDesign:PackIcon Kind="Settings"/>
                 </Button>
-                <Button Command="{Binding SuggestAgainCommand}" Width="120" Height="40">
+                <Button Command="{Binding SuggestAgainCommand}" Background="LightBlue" Width="120" Height="40">
                     <materialDesign:PackIcon Kind="Autorenew"/>
-                    <!-- Utilisation d'un ContextMenu pour le menu déroulant -->
-                    <Button.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Command="{Binding HappyCommand}" Header="Happy"/>
-                            <MenuItem Command="{Binding AngryCommand}" Header="Angry"/>
-                            <MenuItem Command="{Binding PoliteCommand}" Header="Polite"/>
-                            <MenuItem Command="{Binding ProfessionalCommand}" Header="Professional"/>
-                            <MenuItem Command="{Binding FriendlyCommand}" Header="Friendly"/>
-                        </ContextMenu>
-                    </Button.ContextMenu>
+                </Button>
+                <Button Command="{Binding ChangePersonalityAndSuggestCommand}" CommandParameter="Happy" Background="LightBlue" Width="120" Height="40">
+                    <materialDesign:PackIcon Kind="EmojiHappy"/>
+                </Button>
+                <Button Command="{Binding ChangePersonalityAndSuggestCommand}" CommandParameter="Agree"  Background="LightBlue" Width="120" Height="40">
+                    <materialDesign:PackIcon Kind="ThumbsUp"/>
+                </Button>
+                <Button Command="{Binding ChangePersonalityAndSuggestCommand}" CommandParameter="Professional" Background="LightBlue" Width="120" Height="40">
+                    <materialDesign:PackIcon Kind="PersonTie"/>
+                </Button>
+                <Button Command="{Binding ChangePersonalityAndSuggestCommand}" CommandParameter="Science" Background="LightBlue" Width="120" Height="40">
+                    <materialDesign:PackIcon Kind="Glasses"/>
+                </Button>
+                <Button Command="{Binding ChangePersonalityAndSuggestCommand}" CommandParameter="Disagree" Background="LightBlue" Width="120" Height="40">
+                    <materialDesign:PackIcon Kind="ThumbDown"/>
+                </Button>
+                <Button Command="{Binding ChangePersonalityAndSuggestCommand}" CommandParameter="Angry" Background="LightBlue" Width="120" Height="40">
+                    <materialDesign:PackIcon Kind="EmojiAngry"/>
                 </Button>
                 <Button Command="{Binding CopyCommand}" Background="Green" Width="120" Height="40">
                     <materialDesign:PackIcon Kind="ContentCopy"/>

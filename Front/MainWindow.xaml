@@ -18,7 +18,7 @@
     </Window.DataContext>
     <Grid>
         <DockPanel LastChildFill="True"  Visibility="{Binding ShowWebView, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <ToolBar DockPanel.Dock="Top" Height="Auto" Background="LightGray">
+            <ToolBar DockPanel.Dock="Top" IsManipulationEnabled="False" ToolBarTray.IsLocked="True" ToolBar.OverflowMode="Never" ClipToBounds="True" Height="Auto" Background="LightGray">
                 <Button Command="{Binding SuggestCommand}" ToolTip="Suggest Answers">
                     <materialDesign:PackIcon Kind="LightbulbOutline"/>
                 </Button>
@@ -26,8 +26,20 @@
                 <Button Command="{Binding HomeCommand}" ToolTip="Home">
                     <materialDesign:PackIcon Kind="Home"/>
                 </Button>
-                <TextBox Width="400" Text="{Binding AddressBar, Mode=TwoWay}"/>
+                <TextBox Width="400" Text="{Binding Url, Mode=TwoWay}"  KeyUp="TextBox_KeyEnterUpdate"/>
                 <Button Command="{Binding GoToUrlCommand}" Content="Go"/>
+                <Button Command="{Binding GoToCommand}" CommandParameter="https://www.facebook.com">
+                    <materialDesign:PackIcon Kind="Facebook"/>
+                </Button>
+                <Button Command="{Binding GoToCommand}" CommandParameter="https://www.instagram.com">
+                    <materialDesign:PackIcon Kind="Instagram"/>
+                </Button>
+                <Button Command="{Binding GoToCommand}" CommandParameter="https://twitter.com">
+                    <materialDesign:PackIcon Kind="Twitter"/>
+                </Button>
+                <Button Command="{Binding GoToCommand}" CommandParameter="https://youtube.com">
+                    <materialDesign:PackIcon Kind="Youtube"/>
+                </Button>
                 <Button Command="{Binding SettingsCommand}" ToolTip="Settings">
                     <materialDesign:PackIcon Kind="Settings"/>
                 </Button>

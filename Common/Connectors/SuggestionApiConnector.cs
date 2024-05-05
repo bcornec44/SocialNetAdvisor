@@ -15,12 +15,12 @@ public class SuggestionApiConnector : ISuggestionConnector
         };
     }
 
-    public async IAsyncEnumerable<string> GetSuggestion(string context, CancellationToken cancellationToken)
+    public async IAsyncEnumerable<string> GetSuggestion(string context, string personality, CancellationToken cancellationToken)
     {
         var isEmpty = true;
         string message = "Error on server side, please contact your admnistrator";
 
-        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, _url)
+        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, _url + "?personality=" + personality)
         {
             Content = new StringContent(JsonSerializer.Serialize(context), Encoding.UTF8, "application/json")
         };

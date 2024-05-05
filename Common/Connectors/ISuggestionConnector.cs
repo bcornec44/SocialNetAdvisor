@@ -2,6 +2,6 @@
 
 public interface ISuggestionConnector
 {
-    IAsyncEnumerable<string> GetSuggestion(string context, CancellationToken cancellationToken);
+    IAsyncEnumerable<string> GetSuggestion(string context, string personality, CancellationToken cancellationToken);
     void Initialize();
 }
