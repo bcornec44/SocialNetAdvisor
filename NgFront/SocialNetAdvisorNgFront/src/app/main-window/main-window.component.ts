@@ -6,8 +6,8 @@ import { Component } from '@angular/core';
   styleUrls: ['./main-window.component.css']
 })
 export class MainWindowComponent {
-  public url: string | undefined;
-  webViewUrl: string;
+  public url: string = '';
+  webViewUrl: string = '';
   showSuggestions: boolean = false;
 
   constructor() { }

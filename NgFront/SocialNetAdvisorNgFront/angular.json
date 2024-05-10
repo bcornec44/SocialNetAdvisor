@@ -72,10 +72,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "SocialNetAdvisorNgFront:build:production"
+              "buildTarget": "SocialNetAdvisorNgFront:build:production"
             },
             "development": {
-              "browserTarget": "SocialNetAdvisorNgFront:build:development"
+              "buildTarget": "SocialNetAdvisorNgFront:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -83,7 +83,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "SocialNetAdvisorNgFront:build"
+            "buildTarget": "SocialNetAdvisorNgFront:build"
           }
         },
         "test": {
