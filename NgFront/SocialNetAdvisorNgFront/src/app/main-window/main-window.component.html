@@ -1,0 +1,19 @@
+<div class="main-window">
+  <div class="toolbar">
+      <button (click)="suggest()" title="Suggest Answers">
+          <i class="material-icons">lightbulb_outline</i>
+      </button>
+      <div class="separator"></div>
+      <button (click)="home()" title="Home">
+          <i class="material-icons">home</i>
+      </button>
+      <input type="text" [(ngModel)]="url" (keyup.enter)="goToUrl()" placeholder="Enter URL" style="width: 400px;">
+      <button (click)="goToUrl()">Go</button>
+      <button (click)="goTo('https://www.facebook.com')">
+          <i class="material-icons">facebook</i>
+      </button>
+      <!-- Additional buttons for other social media -->
+  </div>
+  <iframe [src]="webViewUrl | safeUrl" class="web-view"></iframe>
+  <app-suggestion-view *ngIf="showSuggestions"></app-suggestion-view>
+</div>
