@@ -1,0 +1,23 @@
+.suggestion-view {
+  display: grid;
+  grid-template-rows: 1fr 1fr auto;
+  height: 100%;
+}
+
+.text-box {
+  padding: 10px;
+  border: 1px solid #ccc;
+  overflow-y: auto;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.personality-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
